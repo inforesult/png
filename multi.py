@@ -1,8 +1,8 @@
 import time
 import random
+import sys
 
-from playwright.sync_api import Playwright, sync_playwright
-from playwright.sync_api import TimeoutError
+from playwright.sync_api import Playwright, sync_playwright, TimeoutError
 from datetime import datetime
 import pytz
 import requests
@@ -66,23 +66,20 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         try:
             close_button = None
             try:
-                # Coba dengan get_by_role lebih dulu
                 close_button = page.get_by_role("img", name="close")
                 close_button.wait_for(state="visible", timeout=3000)
             except TimeoutError:
-                # Fallback: cari berdasarkan class atau alt attribute
                 close_button = page.locator("img.mask-close[alt='close']")
                 close_button.wait_for(state="visible", timeout=3000)
 
             if close_button:
-                time.sleep(0.5)  # delay ringan untuk stabilitas
+                time.sleep(0.5)
                 close_button.click()
         except TimeoutError:
             print("Tombol close tidak muncul atau tidak terdeteksi, lanjutkan.")
         except Exception as e:
             print(f"Terjadi error saat klik tombol close: {e}")
 
-            
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
         page1 = popup_info.value
@@ -154,21 +151,26 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         browser.close()
     except Exception as e:
         kirim_telegram_log("GAGAL", f"<b>[ERROR]</b>\n{userid}@{situs}\n❌ {str(e)}\n⌚ {wib}")
+        raise  # agar tetap dianggap error oleh pemanggil run()
 
 def main():
     bets = baca_file("multi.txt").splitlines()
+    error_ditemukan = False
     with sync_playwright() as playwright:
         for baris in bets:
-            if '|' not in baris:
+            if '|' not in baris or baris.strip().startswith("#"):
                 continue
-            if baris.strip().startswith("#"):
-                continue  # <-- Lewati baris komentar
             parts = baris.strip().split('|')
             if len(parts) != 4:
                 continue
             situs, userid, bet_raw, bet_raw2 = parts
-            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
-
+            try:
+                run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
+            except Exception as e:
+                error_ditemukan = True
+                print(f"❌ Error saat memproses akun {userid}@{situs}: {e}")
+    if error_ditemukan:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
