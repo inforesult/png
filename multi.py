@@ -139,17 +139,25 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
     log_status("✅", f"Selesai proses akun {userid}.")
 
 def close_popup(page):
+    close_button = None
     try:
         close_button = page.get_by_role("img", name="close")
-        close_button.wait_for(state="visible", timeout=3000)
-    except TimeoutError:
-        close_button = page.locator("img.mask-close[alt='close']")
-        close_button.wait_for(state="visible", timeout=3000)
+        if close_button.is_visible():
+            time.sleep(0.5)
+            close_button.click()
+            log_status("✅", "Tombol close (by role) diklik.")
+            return
+    except:
+        pass  # Jika gagal atau tidak ada, lanjut coba yang kedua
 
-    if close_button:
-        time.sleep(0.5)
-        close_button.click()
-        log_status("✅", "Tombol close diklik.")
+    try:
+        close_button = page.locator("img.mask-close[alt='close']")
+        if close_button.is_visible():
+            time.sleep(0.5)
+            close_button.click()
+            log_status("✅", "Tombol close (by locator) diklik.")
+    except:
+        log_status("ℹ️", "Popup tidak muncul, lanjut ke step selanjutnya.")
 
 def main():
     log_status("🚀", "Memulai proses multi akun...")
