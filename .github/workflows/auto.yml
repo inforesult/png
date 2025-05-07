@@ -1,4 +1,5 @@
 name: run multi account
+
 on:
   workflow_dispatch:
 
@@ -23,6 +24,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-browsers-v1
+
     - name: Install dependencies
       run: |
         pip install playwright requests python-dotenv pytz
@@ -30,7 +37,6 @@ jobs:
 
     - name: Jalankan Multi Script
       env:
-        userid: ${{ secrets.USERID }}
         pw: ${{ secrets.PW }}
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
