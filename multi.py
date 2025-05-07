@@ -39,126 +39,121 @@ def parse_saldo(saldo_text: str) -> float:
     saldo_text = saldo_text.replace("Rp.", "").replace("Rp", "").strip().replace(",", "")
     return float(saldo_text)
 
+def try_step(userid: str, label: str, step_func):
+    try:
+        step_func()
+    except Exception as e:
+        wib = datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
+        log_status("💥", f"Gagal saat {label}: {e}")
+        kirim_telegram_log("GAGAL", f"<b>[GAGAL]</b>\n👤 {userid}\n❌ Gagal: {label}\n⌚ {wib}")
+        raise
+
 def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2: str):
     wib = datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
-    try:
-        log_status("📄", f"Mulai proses akun: {userid}")
-        nomor_kombinasi = baca_file("config_png.txt")
-        bet_kali = float(bet_raw)
-        bet_kali2 = float(bet_raw2)
-        jumlah_kombinasi = len(nomor_kombinasi.split('*'))
-        total_bet_rupiah = jumlah_kombinasi * (bet_kali + bet_kali2) * 1000
+    log_status("📄", f"Mulai proses akun: {userid}")
 
-        log_status("🌐", f"Login ke situs {situs}...")
-        browser = playwright.chromium.launch(headless=True)
-        context = browser.new_context(
-            viewport={"width": 1280, "height": 720},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/113.0 Safari/537.36"
-        )
-        page = context.new_page()
-        page.goto(f"https://{situs}/#/index?category=lottery")
+    nomor_kombinasi = baca_file("config_png.txt")
+    bet_kali = float(bet_raw)
+    bet_kali2 = float(bet_raw2)
+    jumlah_kombinasi = len(nomor_kombinasi.split('*'))
 
-        try:
-            log_status("❌", "Cek tombol close popup...")
-            try:
-                close_button = page.get_by_role("img", name="close")
-                close_button.wait_for(state="visible", timeout=3000)
-            except TimeoutError:
-                close_button = page.locator("img.mask-close[alt='close']")
-                close_button.wait_for(state="visible", timeout=3000)
+    browser = playwright.chromium.launch(headless=True)
+    context = browser.new_context(
+        viewport={"width": 1280, "height": 720},
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/113.0 Safari/537.36"
+    )
+    page = context.new_page()
 
-            if close_button:
-                time.sleep(0.5)
-                close_button.click()
-                log_status("✅", "Tombol close diklik.")
-        except Exception:
-            log_status("ℹ️", "Popup close tidak ditemukan. Lanjut.")
+    try_step(userid, "Akses halaman utama", lambda: page.goto(f"https://{situs}/#/index?category=lottery"))
 
-        log_status("➡️", "Buka popup login HOKI DRAW...")
+    try_step(userid, "Tutup popup", lambda: close_popup(page))
+
+    def open_login():
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
+        nonlocal page1
         page1 = popup_info.value
+    page1 = None
+    try_step(userid, "Buka login HOKI DRAW", open_login)
 
-        log_status("🔐", "Isi form login...")
-        page1.locator("input#loginUser").wait_for()
-        page1.locator("input#loginUser").type(userid, delay=100)
-        page1.locator("input#loginPsw").type(pw, delay=120)
+    try_step(userid, "Isi form login", lambda: (
+        page1.locator("input#loginUser").wait_for(),
+        page1.locator("input#loginUser").type(userid, delay=100),
+        page1.locator("input#loginPsw").type(pw, delay=120),
         page1.locator("div.login-btn").click()
+    ))
 
-        try:
-            page1.get_by_role("link", name="Saya Setuju").wait_for(timeout=10000)
-            page1.get_by_role("link", name="Saya Setuju").click()
-            log_status("✅", "Klik 'Saya Setuju'")
-        except:
-            log_status("ℹ️", "'Saya Setuju' tidak muncul")
+    try_step(userid, "Klik 'Saya Setuju'", lambda: (
+        page1.get_by_role("link", name="Saya Setuju").wait_for(timeout=10000),
+        page1.get_by_role("link", name="Saya Setuju").click()
+    ))
 
-        log_status("💰", "Cek saldo awal...")
-        try:
-            saldo_text = page1.locator("span.overage-num").inner_text().strip()
-            saldo_value = parse_saldo(saldo_text)
-            log_status("💳", f"Saldo awal: Rp {saldo_value:,.0f}")
-        except:
-            saldo_value = 0.0
+    try:
+        saldo_text = page1.locator("span.overage-num").inner_text().strip()
+        saldo_value = parse_saldo(saldo_text)
+        log_status("💳", f"Saldo awal: Rp {saldo_value:,.0f}")
+    except:
+        saldo_value = 0.0
 
-        log_status("🎯", "Masuk halaman 5D Fast...")
-        page1.locator("a[data-urlkey='5dFast']").click()
-        for _ in range(5):
-            tombol = page1.get_by_text("FULL", exact=True)
-            tombol.hover()
-            time.sleep(random.uniform(0.8, 1.6))
-            tombol.click()
+    try_step(userid, "Masuk halaman 5D Fast", lambda: page1.locator("a[data-urlkey='5dFast']").click())
 
-        log_status("✏️", "Isi kombinasi & nominal...")
-        page1.locator("#numinput").fill(nomor_kombinasi)
-        page1.locator("input#buy3d").fill("")
-        page1.locator("input#buy3d").type(str(bet_kali), delay=80)
-        page1.locator("input#buy4d").fill("")
-        page1.locator("input#buy4d").type(str(bet_kali2), delay=80)
+    try_step(userid, "Klik tombol FULL", lambda: [
+        tombol := page1.get_by_text("FULL", exact=True),
+        tombol.hover(),
+        time.sleep(random.uniform(0.8, 1.6)),
+        tombol.click()
+        for _ in range(5)
+    ])
+
+    try_step(userid, "Isi kombinasi & nominal", lambda: (
+        page1.locator("#numinput").fill(nomor_kombinasi),
+        page1.locator("input#buy3d").fill(""),
+        page1.locator("input#buy3d").type(str(bet_kali), delay=80),
+        page1.locator("input#buy4d").fill(""),
+        page1.locator("input#buy4d").type(str(bet_kali2), delay=80),
         page1.locator("button.jq-bet-submit").click()
+    ))
 
-        log_status("🕒", "Menunggu hasil taruhan...")
-        try:
-            page1.wait_for_selector("text=Bettingan anda berhasil dikirim.", timeout=15000)
-            betting_berhasil = True
-            log_status("🎉", "Taruhan berhasil dikirim.")
-        except:
-            betting_berhasil = False
-            log_status("❌", "Taruhan gagal.")
+    try:
+        page1.wait_for_selector("text=Bettingan anda berhasil dikirim.", timeout=15000)
+        betting_berhasil = True
+    except:
+        betting_berhasil = False
 
-        try:
-            saldo_text = page1.locator("span.overage-num").inner_text().strip()
-            saldo_value = parse_saldo(saldo_text)
-        except:
-            saldo_value = 0.0
+    try:
+        saldo_text = page1.locator("span.overage-num").inner_text().strip()
+        saldo_value = parse_saldo(saldo_text)
+    except:
+        saldo_value = 0.0
 
-        if betting_berhasil:
-            pesan_sukses = (
-                f"<b>[SUKSES]</b>\n"
-                f"👤 {userid}\n"
-                f"💰 SALDO KAMU Rp. <b>{saldo_value:,.0f}</b>\n"
-                f"⌚ {wib}"
-            )
-            kirim_telegram_log("SUKSES", pesan_sukses)
-        else:
-            pesan_gagal = (
-                f"<b>[GAGAL]</b>\n"
-                f"👤 {userid}\n"
-                f"💰 SALDO KAMU Rp. <b>{saldo_value:,.0f}</b>\n"
-                f"⌚ {wib}"
-            )
-            kirim_telegram_log("GAGAL", pesan_gagal)
+    if betting_berhasil:
+        pesan = f"<b>[SUKSES]</b>\n👤 {userid}\n💰 SALDO KAMU Rp. <b>{saldo_value:,.0f}</b>\n⌚ {wib}"
+        kirim_telegram_log("SUKSES", pesan)
+    else:
+        pesan = f"<b>[GAGAL]</b>\n👤 {userid}\n💰 SALDO KAMU Rp. <b>{saldo_value:,.0f}</b>\n⌚ {wib}"
+        kirim_telegram_log("GAGAL", pesan)
 
-        context.close()
-        browser.close()
-        log_status("✅", f"Selesai proses akun {userid}.\n")
+    context.close()
+    browser.close()
+    log_status("✅", f"Selesai proses akun {userid}.")
 
-    except Exception as e:
-        kirim_telegram_log("GAGAL", f"<b>[ERROR]</b>\n{userid}@{situs}\n❌ {str(e)}\n⌚ {wib}")
-        log_status("💥", f"Error fatal untuk {userid}: {e}")
+def close_popup(page):
+    try:
+        close_button = page.get_by_role("img", name="close")
+        close_button.wait_for(state="visible", timeout=3000)
+    except TimeoutError:
+        close_button = page.locator("img.mask-close[alt='close']")
+        close_button.wait_for(state="visible", timeout=3000)
+
+    if close_button:
+        time.sleep(0.5)
+        close_button.click()
+        log_status("✅", "Tombol close diklik.")
 
 def main():
     log_status("🚀", "Memulai proses multi akun...")
     bets = baca_file("multi.txt").splitlines()
+
     with sync_playwright() as playwright:
         for baris in bets:
             if '|' not in baris or baris.strip().startswith("#"):
@@ -167,7 +162,11 @@ def main():
             if len(parts) != 4:
                 continue
             situs, userid, bet_raw, bet_raw2 = parts
-            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
+
+            try:
+                run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
+            except:
+                pass
 
 if __name__ == "__main__":
     main()
