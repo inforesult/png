@@ -97,13 +97,14 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
 
     try_step(userid, "Masuk halaman 5D Fast", lambda: page1.locator("a[data-urlkey='5dFast']").click())
 
-    try_step(userid, "Klik tombol FULL", lambda: [
-        tombol := page1.get_by_text("FULL", exact=True),
-        tombol.hover(),
-        time.sleep(random.uniform(0.8, 1.6)),
-        tombol.click()
-        for _ in range(5)
-    ])
+    def klik_tombol_full():
+        for _ in range(5):
+            tombol = page1.get_by_text("FULL", exact=True)
+            tombol.hover()
+            time.sleep(random.uniform(0.8, 1.6))
+            tombol.click()
+
+    try_step(userid, "Klik tombol FULL", klik_tombol_full)
 
     try_step(userid, "Isi kombinasi & nominal", lambda: (
         page1.locator("#numinput").fill(nomor_kombinasi),
