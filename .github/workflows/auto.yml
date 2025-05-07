@@ -28,15 +28,6 @@ jobs:
         pip install playwright requests python-dotenv pytz
         playwright install chromium
 
-   # - name: Jalankan Script
-   #   continue-on-error: true
-   #   env:
-   #     userid: ${{ secrets.USERID }}
-   #     pw: ${{ secrets.PW }}
-   #     TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-   #     TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-   #   run: python main.py
-
     - name: Jalankan Multi Script
       env:
         userid: ${{ secrets.USERID }}
@@ -44,31 +35,3 @@ jobs:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python multi.py
-
- #   - name: Set WIB time
- #     id: set_wib_time
- #     run: |
- #       TIME_WIB=$(date -u --date='+7 hours' '+%Y-%m-%d %H:%M:%S')
- #       echo "time_wib=$TIME_WIB" >> $GITHUB_OUTPUT
-
- #   - name: Kirim Notifikasi Telegram (Success)
- #     if: success()
- #     env:
- #       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
- #       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
- #     run: |
- #       curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
- #         -d chat_id="${TELEGRAM_CHAT_ID}" \
- #         -d text="✅ Workflow *BERHASIL* pada ${{ steps.set_wib_time.outputs.time_wib }} WIB" \
- #         -d parse_mode="Markdown"
-
- #   - name: Kirim Notifikasi Telegram (Failed)
- #     if: failure()
- #     env:
- #       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
- #       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
- #     run: |
- #       curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
- #         -d chat_id="${TELEGRAM_CHAT_ID}" \
- #         -d text="❌ Workflow *GAGAL* pada ${{ steps.set_wib_time.outputs.time_wib }} WIB" \
- #         -d parse_mode="Markdown"
