@@ -2,6 +2,7 @@ import time
 import random
 
 from playwright.sync_api import Playwright, sync_playwright
+from playwright.sync_api import TimeoutError
 from datetime import datetime
 import pytz
 import requests
@@ -63,11 +64,24 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         page.goto(f"https://{situs}/#/index?category=lottery")
         
         try:
-            close_button = page.get_by_role("img", name="close")
-            if close_button.is_visible():
+            close_button = None
+            try:
+                # Coba dengan get_by_role lebih dulu
+                close_button = page.get_by_role("img", name="close")
+                close_button.wait_for(state="visible", timeout=3000)
+            except TimeoutError:
+                # Fallback: cari berdasarkan class atau alt attribute
+                close_button = page.locator("img.mask-close[alt='close']")
+                close_button.wait_for(state="visible", timeout=3000)
+
+            if close_button:
+                time.sleep(0.5)  # delay ringan untuk stabilitas
                 close_button.click()
-        except:
-            pass  # Jika tidak ada tombol 'close', lanjutkan
+        except TimeoutError:
+            print("Tombol close tidak muncul atau tidak terdeteksi, lanjutkan.")
+        except Exception as e:
+            print(f"Terjadi error saat klik tombol close: {e}")
+
             
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
