@@ -61,7 +61,7 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         )
         page = context.new_page()
         page.goto(f"https://{situs}/#/index?category=lottery")
-        time.sleep(3)
+        time.sleep(5)
 
         # Hapus overlay jika ada
         log_status("🧹", "Mengecek dan menghapus overlay jika ada...")
