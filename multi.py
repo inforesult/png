@@ -1,6 +1,5 @@
 import time
 import random
-
 from playwright.sync_api import Playwright, sync_playwright, TimeoutError
 from datetime import datetime
 import pytz
@@ -11,7 +10,7 @@ pw = os.getenv("pw")
 telegram_token = os.getenv("TELEGRAM_TOKEN")
 telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
-def get_wib_time():
+def get_wib():
     return datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
 
 def log_status(emoji: str, message: str):
@@ -38,16 +37,15 @@ def kirim_telegram_log(status: str, pesan: str):
                 print(f"Respon Telegram: {response.text}")
         except Exception as e:
             print("Error saat mengirim ke Telegram:", e)
-    else:
-        print("Token atau chat_id tidak tersedia.")
 
 def parse_saldo(saldo_text: str) -> float:
     saldo_text = saldo_text.replace("Rp.", "").replace("Rp", "").strip().replace(",", "")
     return float(saldo_text)
 
 def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2: str):
-    wib = get_wib_time()
+    wib = get_wib()
     try:
+        log_status("📄", f"Membaca kombinasi nomor...")
         nomor_kombinasi = baca_file("config_png.txt")
         bet_kali = float(bet_raw)
         bet_kali2 = float(bet_raw2)
@@ -63,19 +61,26 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         )
         page = context.new_page()
         page.goto(f"https://{situs}/#/index?category=lottery")
-        
-        log_status("🧹", "Coba hapus overlay pop-up jika ada...")
-        page.evaluate("""
-            document.querySelectorAll('.mask-item, .pop-notify, .pop-notify-fadein').forEach(el => el.remove());
-        """)
-        log_status("✅", "Overlay popup dihapus (jika ada).")
 
-        log_status("🔗", "Membuka HOKI DRAW...")
+        # Hapus overlay jika ada
+        log_status("🧹", "Mengecek dan menghapus overlay jika ada...")
+        removed = page.evaluate("""() => {
+            const mask = document.querySelector('#mask');
+            if (mask) {
+                mask.remove();
+                return 1;
+            }
+            return 0;
+        }""")
+        log_status("🧾", f"Overlay dihapus: {'YA' if removed else 'TIDAK'}")
+
+        # Buka popup login
+        log_status("🔓", "Menunggu popup login terbuka...")
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
         page1 = popup_info.value
 
-        log_status("🔐", "Mengisi login form...")
+        log_status("🔐", "Mengisi form login...")
         page1.locator("input#loginUser").wait_for()
         page1.locator("input#loginUser").type(userid, delay=100)
         page1.locator("input#loginPsw").type(pw, delay=120)
@@ -85,15 +90,17 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
             page1.get_by_role("link", name="Saya Setuju").wait_for(timeout=10000)
             page1.get_by_role("link", name="Saya Setuju").click()
         except:
-            pass
+            log_status("✅", "Tidak ada persetujuan, lanjut...")
 
+        log_status("💰", "Mengambil saldo awal...")
         try:
             saldo_text = page1.locator("span.overage-num").inner_text().strip()
             saldo_value = parse_saldo(saldo_text)
         except:
+            saldo_text = "tidak diketahui"
             saldo_value = 0.0
 
-        log_status("🎯", "Masuk ke 5dFast dan isi kombinasi...")
+        log_status("🎯", "Masuk ke menu betting 5dFast...")
         page1.locator("a[data-urlkey='5dFast']").click()
         for _ in range(5):
             tombol = page1.get_by_text("FULL", exact=True)
@@ -101,6 +108,7 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
             time.sleep(random.uniform(0.8, 1.6))
             tombol.click()
 
+        log_status("✍️", "Mengisi form betting...")
         page1.locator("#numinput").fill(nomor_kombinasi)
         input3d = page1.locator("input#buy3d")
         input3d.fill("")
@@ -110,7 +118,7 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         input4d.type(str(bet_raw2), delay=80)
         page1.locator("button.jq-bet-submit").click()
 
-        log_status("📨", "Menunggu konfirmasi betting...")
+        log_status("⏳", "Menunggu konfirmasi betting...")
         try:
             page1.wait_for_selector("text=Bettingan anda berhasil dikirim.", timeout=15000)
             betting_berhasil = True
@@ -124,37 +132,42 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
             saldo_value = 0.0
 
         if betting_berhasil:
-            pesan = (
+            pesan_sukses = (
                 f"<b>[SUKSES]</b>\n"
                 f"👤 {userid}\n"
                 f"💰 SALDO KAMU Rp. <b>{saldo_value:,.0f}</b>\n"
                 f"⌚ {wib}"
             )
+            kirim_telegram_log("SUKSES", pesan_sukses)
         else:
-            pesan = (
+            pesan_gagal = (
                 f"<b>[GAGAL]</b>\n"
                 f"👤 {userid}\n"
                 f"💰 SALDO KAMU Rp. <b>{saldo_value:,.0f}</b>\n"
                 f"⌚ {wib}"
             )
-        kirim_telegram_log("STATUS", pesan)
+            kirim_telegram_log("GAGAL", pesan_gagal)
 
         context.close()
         browser.close()
     except Exception as e:
-        kirim_telegram_log("ERROR", f"<b>[ERROR]</b>\n{userid}@{situs}\n❌ {str(e)}\n⌚ {wib}")
+        kirim_telegram_log("GAGAL", f"<b>[ERROR]</b>\n{userid}@{situs}\n❌ {str(e)}\n⌚ {wib}")
 
 def main():
+    log_status("🚀", "Mulai eksekusi multi akun...")
     bets = baca_file("multi.txt").splitlines()
     with sync_playwright() as playwright:
         for baris in bets:
-            if '|' not in baris or baris.strip().startswith("#"):
+            if '|' not in baris:
+                continue
+            if baris.strip().startswith("#"):
                 continue
             parts = baris.strip().split('|')
             if len(parts) != 4:
                 continue
             situs, userid, bet_raw, bet_raw2 = parts
             run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
+    log_status("✅", "Selesai semua akun.")
 
 if __name__ == "__main__":
     main()
