@@ -172,16 +172,13 @@ def main():
     bets = baca_file("multi.txt").splitlines()
     with sync_playwright() as playwright:
         for baris in bets:
-            if '|' not in baris:
-                continue
-            if baris.strip().startswith("#"):
+            if '|' not in baris or baris.strip().startswith("#"):
                 continue
             parts = baris.strip().split('|')
-            if len(parts) != 4:
+            if len(parts) < 5:
                 continue
-            situs, userid, bet_raw, bet_raw2 = parts
-            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
-    log_status("✅", "Selesai semua akun.")
+            situs, userid, bet_raw, bet_raw2, config_csv = parts
+            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip())
 
 if __name__ == "__main__":
     main()
