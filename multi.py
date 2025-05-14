@@ -55,7 +55,7 @@ def parse_saldo(saldo_text: str) -> float:
     saldo_text = saldo_text.replace("Rp.", "").replace("Rp", "").strip().replace(",", "")
     return float(saldo_text)
 
-def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2: str):
+def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2: str, config_csv: str):
     wib = get_wib()
     try:
         nomor_kombinasi = baca_multi_config(config_csv)
