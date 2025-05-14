@@ -74,14 +74,22 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         )
         page = context.new_page()
         page.goto(f"https://{situs}/#/index?category=lottery")
+        time.sleep(3)
+        time.sleep(5)
 
-        try:
-            close_button = page.get_by_role("img", name="close")
-            if close_button.is_visible():
-                close_button.click()
-        except:
-            pass
+        # Hapus overlay jika ada
+        log_status("🧹", "Mengecek dan menghapus overlay jika ada...")
+        removed = page.evaluate("""() => {
+            const mask = document.querySelector('#mask');
+            if (mask) {
+                mask.remove();
+                return 1;
+            }
+            return 0;
+        }""")
+        log_status("🧾", f"Overlay dihapus: {'YA' if removed else 'TIDAK'}")
 
+        
         with page.expect_popup() as popup_info:
             page.get_by_role("heading", name="HOKI DRAW").click()
         page1 = popup_info.value
