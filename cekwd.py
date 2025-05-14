@@ -149,10 +149,10 @@ def main():
             if '|' not in baris or baris.strip().startswith("#"):
                 continue
             parts = baris.strip().split('|')
-            if len(parts) != 4:
+            if len(parts) < 5:
                 continue
-            situs, userid, bet_raw, bet_raw2 = parts
-            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip())
+            situs, userid, bet_raw, bet_raw2, config_csv = parts
+            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip())
 
 if __name__ == "__main__":
     main()
