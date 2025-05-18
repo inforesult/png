@@ -81,7 +81,7 @@ def cek_status_wd(page, situs):
         print("Gagal cek status WD:", e)
         return "Gagal cek", "-", "-"
 
-def cek_saldo_dan_status(playwright, situs, userid):
+def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
     try:
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
@@ -145,8 +145,8 @@ def cek_saldo_dan_status(playwright, situs, userid):
                         )
 
         # === AUTO WD MODE: bataswd.txt ===
-        if baca_setting("AUTO_WD_BATAS") == "on" and os.path.exists("bataswd.txt"):
-            batas_str = baca_file("bataswd.txt")
+        if baca_setting("AUTO_WD_BATAS") == "on" and bataswd:
+            batas_str = bataswd
             try:
                 batas_saldo = float(batas_str)
                 kelebihan = saldo_value - batas_saldo
@@ -186,8 +186,8 @@ def main():
             parts = baris.strip().split('|')
             if len(parts) < 5:
                 continue
-            situs, userid, bet_raw, bet_raw2, config_csv = parts
-            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip())
+            situs, userid, bet_raw, bet_raw2, config_csv, bataswd = (parts + [""] * 6)[:6]
+            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip(), bataswd.strip())
 
 if __name__ == "__main__":
     main()
