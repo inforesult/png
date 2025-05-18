@@ -174,8 +174,8 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
     except Exception as e:
         kirim_telegram(f"<b>[ERROR]</b>\n👤 {userid}\n❌ {e}\n⌚ {wib}")
 
-def run(playwright, situs, userid, *_):
-    cek_saldo_dan_status(playwright, situs, userid)
+def run(playwright, situs, userid, bet_raw, bet_raw2, config_csv, bataswd):
+    cek_saldo_dan_status(playwright, situs, userid, bataswd)
 
 def main():
     bets = baca_file("multi.txt").splitlines()
