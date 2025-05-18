@@ -1,7 +1,7 @@
-# situs|userid|bet3D|bet4D
+# situs|userid|bet3D|bet4D|config|batassaldo
 # wdbos39652.com|kucingkucingan|2|0
 # mancingduit39078.com|vespapx|2|0.2
 # depobos84478.com|vespasprint|1|0.1
 # wdbos39652.com|kucingbuta|0|0.1
 # depobos84478.com|anjinganjingan|3|0.2|3Dtwin,4Dtwin
-# depobos84478.com|anjinganjingan|1|0|3Dtwin
+depobos84478.com|anjinganjingan|1|0|3Dtwin|500
