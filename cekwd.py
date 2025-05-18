@@ -16,6 +16,17 @@ def baca_file(file_name: str) -> str:
     with open(file_name, 'r') as file:
         return file.read().strip()
 
+def baca_setting(key: str, default="off") -> str:
+    if not os.path.exists("setting.txt"):
+        return default
+    with open("setting.txt", "r") as f:
+        for line in f:
+            if "=" in line:
+                k, v = line.strip().split("=", 1)
+                if k.strip().upper() == key.upper():
+                    return v.strip().lower()
+    return default
+
 def kirim_telegram(pesan: str):
     print(pesan)
     if telegram_token and telegram_chat_id:
@@ -102,17 +113,17 @@ def cek_saldo_dan_status(playwright, situs, userid):
 
         status_permainan = "🏆 Menang" if "Menang" in nama_permainan else "🥲 Tidak menang"
 
-        # Kirim status awal
-        kirim_telegram(
-            f"<b>[STATUS]</b>\n"
-            f"👤 {userid}\n"
-            f"💰 SALDO: <b>Rp {saldo_value:,.0f}</b>\n"
-            f"{status_permainan}\n"
-            f"⌚ {wib}"
-        )
+        if baca_setting("NOTIF_MENANG") == "on":
+            kirim_telegram(
+                f"<b>[STATUS]</b>\n"
+                f"👤 {userid}\n"
+                f"💰 SALDO: <b>Rp {saldo_value:,.0f}</b>\n"
+                f"{status_permainan}\n"
+                f"⌚ {wib}"
+            )
 
-        # Cek apakah auto-WD perlu dilakukan
-        if os.path.exists("target.txt"):
+        # === AUTO WD MODE: target.txt ===
+        if baca_setting("AUTO_WD_TARGET") == "on" and os.path.exists("target.txt"):
             target_line = baca_file("target.txt")
             if '|' in target_line:
                 target_saldo_str, jumlah_wd_str = target_line.split('|')
@@ -132,6 +143,30 @@ def cek_saldo_dan_status(playwright, situs, userid):
                             f"✅ Status: <b>{status}</b>\n"
                             f"⌚ {wib}"
                         )
+
+        # === AUTO WD MODE: bataswd.txt ===
+        if baca_setting("AUTO_WD_BATAS") == "on" and os.path.exists("bataswd.txt"):
+            batas_str = baca_file("bataswd.txt")
+            try:
+                batas_saldo = float(batas_str)
+                kelebihan = saldo_value - batas_saldo
+                if kelebihan >= 50000:
+                    jumlah_wd = int(kelebihan // 1000 * 1000)
+                    if jumlah_wd >= 50000:
+                        berhasil_wd = lakukan_wd(page, situs, str(jumlah_wd))
+                        if berhasil_wd:
+                            time.sleep(5)
+                            status, nominal, tanggal = cek_status_wd(page, situs)
+                            kirim_telegram(
+                                f"<b>[AUTO-WD]</b>\n"
+                                f"👤 {userid}\n"
+                                f"💸 Rp {jumlah_wd:,.0f}\n"
+                                f"📆 {tanggal}\n"
+                                f"✅ Status: <b>{status}</b>\n"
+                                f"⌚ {wib}"
+                            )
+            except ValueError:
+                print("Format angka di bataswd.txt tidak valid.")
 
         context.close()
         browser.close()
