@@ -55,7 +55,7 @@ def parse_saldo(saldo_text: str) -> float:
     saldo_text = saldo_text.replace("Rp.", "").replace("Rp", "").strip().replace(",", "")
     return float(saldo_text)
 
-def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2: str, config_csv: str):
+def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2: str, config_csv: str, bataswd: str = ""):
     wib = get_wib()
     try:
         nomor_kombinasi = baca_multi_config(config_csv)
@@ -177,8 +177,8 @@ def main():
             parts = baris.strip().split('|')
             if len(parts) < 5:
                 continue
-            situs, userid, bet_raw, bet_raw2, config_csv = parts
-            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip())
+            situs, userid, bet_raw, bet_raw2, config_csv, bataswd = (parts + [""] * 6)[:6]
+            run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip(), bataswd.strip())
 
 if __name__ == "__main__":
     main()
