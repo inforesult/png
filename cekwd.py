@@ -101,11 +101,9 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
 
         time.sleep(3)
 
-        # Ambil saldo
         saldo_text = page.locator(".myPurse span i").inner_text().strip()
         saldo_value = parse_saldo(saldo_text)
 
-        # Ambil nama permainan terbaru
         page.goto(f"https://{situs}/#/betRecords")
         page.get_by_text("Togel").click()
         page.locator(".list .ls-list-item").first.wait_for(timeout=10000)
@@ -122,7 +120,6 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
                 f"⌚ {wib}"
             )
 
-        # === AUTO WD MODE: target.txt ===
         if baca_setting("AUTO_WD_TARGET") == "on" and os.path.exists("target.txt"):
             target_line = baca_file("target.txt")
             if '|' in target_line:
@@ -144,11 +141,9 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
                             f"⌚ {wib}"
                         )
 
-        # === AUTO WD MODE: bataswd.txt ===
         if baca_setting("AUTO_WD_BATAS") == "on" and bataswd:
-            batas_str = bataswd
             try:
-                batas_saldo = float(batas_str)
+                batas_saldo = float(bataswd)
                 kelebihan = saldo_value - batas_saldo
                 if kelebihan >= 50000:
                     jumlah_wd = int(kelebihan // 1000 * 1000)
@@ -177,12 +172,12 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
 def run(playwright, situs, userid, bet_raw, bet_raw2, config_csv, bataswd):
     cek_saldo_dan_status(playwright, situs, userid, bataswd)
 
-def scrape_nomor_terbaru(playwright):
+def scrape_nomor_terbaru(playwright, situs, userid):
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
 
-    page.goto("https://depobos.org/#/index?category=lottery")
+    page.goto(f"https://{situs}/#/index?category=lottery")
     try:
         page.get_by_role("img", name="close").click()
     except:
@@ -198,11 +193,11 @@ def scrape_nomor_terbaru(playwright):
     time.sleep(2)
     page1.get_by_role("link", name="Saya Setuju").click()
     time.sleep(2)
-    page1.get_by_role("link", name="NOMOR HISTORY NOMOR").click() 
+    page1.get_by_role("link", name="NOMOR HISTORY NOMOR").click()
     time.sleep(2)
     page1.locator("#marketSelect").select_option("HKDW")
     time.sleep(2)
-    # Tunggu sampai tabel muncul dan ambil nomor terbaru
+
     page1.locator("#historyTable tbody tr").first.wait_for(timeout=10000)
     nomor = page1.locator("#historyTable tbody tr td").nth(3).inner_text().strip()
 
@@ -224,7 +219,12 @@ def main():
             run(playwright, situs.strip(), userid.strip(), bet_raw.strip(), bet_raw2.strip(), config_csv.strip(), bataswd.strip())
 
         if baca_setting("SCRAPER_NOMOR") == "on":
-            scrape_nomor_terbaru(playwright)
+            first_valid = [b for b in bets if '|' in b and not b.strip().startswith("#")]
+            if first_valid:
+                first_userid = first_valid[0].split('|')[1].strip()
+                first_situs = first_valid[0].split('|')[0].strip()
+                scrape_nomor_terbaru(playwright, first_situs, first_userid)
+
 
 if __name__ == "__main__":
     main()
