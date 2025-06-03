@@ -126,14 +126,13 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         page1.locator("#numinput").fill(nomor_kombinasi)
         time.sleep(3)
         input3d = page1.locator("input#buy3d")
-        input3d.fill("")
-        input3d.type(str(bet_raw), delay=80)
+        input3d.fill(str(bet_raw))
         time.sleep(3)
         input4d = page1.locator("input#buy4d")
-        input4d.fill("")
-        input4d.type(str(bet_raw2), delay=80)
+        input4d.fill(str(bet_raw2))
         time.sleep(3)
         page1.locator("button.jq-bet-submit").click()
+
 
         log_status("⏳", "Menunggu konfirmasi betting...")
         try:
