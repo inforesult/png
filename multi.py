@@ -130,7 +130,7 @@ def run(playwright: Playwright, situs: str, userid: str, bet_raw: str, bet_raw2:
         time.sleep(3)
         input4d = page1.locator("input#buy4d")
         input4d.fill(str(bet_raw2))
-        time.sleep(3)
+        time.sleep(10)
         page1.locator("button.jq-bet-submit").click()
 
 
