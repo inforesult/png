@@ -196,7 +196,7 @@ def scrape_nomor_terbaru(playwright, situs, userid):
     page1.get_by_role("link", name="NOMOR HISTORY NOMOR").click()
     time.sleep(2)
     page1.locator("#marketSelect").select_option("HKDW")
-    time.sleep(2)
+    time.sleep(3)
 
     page1.locator("#historyTable tbody tr").first.wait_for(timeout=10000)
     nomor = page1.locator("#historyTable tbody tr td").nth(3).inner_text().strip()
