@@ -8,4 +8,4 @@
 # depobos.org|anjinganjingan|1|0|twin.txt|
 # mancingduit.net|anjinganjingan|1|0|poltar|
 # mancingduit.net|anjinganjingan|0|0.1|1638,poltar1638|
-# la80660.com|kucingkucingan|0|0.1|2539|
+la80660.com|kucingkucingan|1|0|poltar|
