@@ -145,6 +145,7 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
             try:
                 batas_saldo = float(bataswd)
                 kelebihan = saldo_value - batas_saldo
+                print(f"[DEBUG] saldo={saldo_value}, batas={batas_saldo}, kelebihan={kelebihan}")
                 if kelebihan >= 50000:
                     jumlah_wd = int(kelebihan // 1000 * 1000)
                     if jumlah_wd >= 50000:
