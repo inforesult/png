@@ -164,6 +164,28 @@ def cek_saldo_dan_status(playwright, situs, userid, bataswd=""):
             except ValueError:
                 print("Format angka di bataswd.txt tidak valid.")
 
+        # AUTO WD ALL SALDO
+        if baca_setting("AUTO_WD_ALL") == "on":
+            try:
+                wd_all_min = float(baca_setting("WD_ALL_MIN", "1000000"))  # default 200000
+                if saldo_value >= wd_all_min:
+                    jumlah_wd = int(saldo_value // 1000 * 1000)  # semua saldo kelipatan 1000
+                    if jumlah_wd >= 50000:  # tetap cek batas minimal
+                        berhasil_wd = lakukan_wd(page, situs, str(jumlah_wd))
+                        if berhasil_wd:
+                            time.sleep(5)
+                            status, nominal, tanggal = cek_status_wd(page, situs)
+                            kirim_telegram(
+                                f"<b>[AUTO-WD-ALL]</b>\n"
+                                f"👤 {userid}\n"
+                                f"💰 Rp {jumlah_wd:,.0f}\n"
+                                f"📆 {tanggal}\n"
+                                f"✅ Status: <b>{status}</b>\n"
+                                f"⌚ {wib}"
+                            )
+            except Exception as e:
+                print("Error AUTO_WD_ALL:", e)
+
         context.close()
         browser.close()
 
